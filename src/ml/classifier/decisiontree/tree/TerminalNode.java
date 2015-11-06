@@ -30,7 +30,8 @@ public class TerminalNode extends Node {
      */
     @Override
     public void showNode(String indent) {
-        System.out.println(indent + "|_ " + this.getLabel() + " terminal");
+        //System.out.println(indent + "|- " + this.getLabel() + " terminal");
+        System.out.println(indent + "Decision: " + this.getLabel());
     }
 
 }

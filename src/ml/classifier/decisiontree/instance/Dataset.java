@@ -43,8 +43,17 @@ public class Dataset {
      * @param datasetToCopy the dataset to be "cloned"
      */
     public Dataset(Dataset datasetToCopy) {
-        this.observations = datasetToCopy.getObservations();
-        this.outcomeAttributeName = datasetToCopy.getOutcomeAttributeName();
+        this.observations = new ArrayList<>();
+
+        for (Instance observation : datasetToCopy.getObservations()) {
+            List<Attribute> attributes = new ArrayList<>();
+            for (Attribute attribute : observation.getAttributes()) {
+                attributes.add(new Attribute(new String(attribute.getAttributeName()), new String(attribute.getAttributeValue())));
+            }
+            this.observations.add(new Instance(attributes));
+        }
+
+        this.outcomeAttributeName = new String(datasetToCopy.getOutcomeAttributeName());
     }
 
     /**
@@ -182,13 +191,12 @@ public class Dataset {
 
     /**
      * Split the dataset by an attribute
-     * Choose from the given dataset only the instances that contain the given attribute
+     * Choose from the given dataset only the instances that contain the given attribute value
      * @param dataset the dataset to be split
      * @param attribute the split attribute
-     * @return the new dataset, containing only the instances that have the wanted attribute
+     * @return the new dataset, containing only the instances that have the wanted attribute value
      */
     public static Dataset splitDatasetByAttribute(Dataset dataset, Attribute attribute) {
-        System.out.println(attribute + " " + dataset);
         Dataset resultDataset = new Dataset();
 
         for (Instance observation : dataset.getObservations()) {
@@ -196,6 +204,31 @@ public class Dataset {
                 if (observationAttribute.equals(attribute))
                     resultDataset.addObservation(observation);
         }
+
+        return resultDataset;
+    }
+
+    /**
+     * Split the discretized dataset by an attribute, but return a new Dataset filled with the continuous values
+     * Choose from the given dataset only the instances that contain the given attribute value
+     * @param discretizedDataset the dataset to be split
+     * @param dataset the dataset of continuous values
+     * @param attribute the split attribute
+     * @return the new dataset, containing only the instances that have the wanted attribute value
+     */
+    public static Dataset splitDiscretizedDatasetByAttribute(Dataset discretizedDataset, Dataset dataset, Attribute attribute) {
+        Dataset resultDataset = new Dataset();
+
+        for (int instanceIndex = 0; instanceIndex < dataset.getObservations().size(); ++instanceIndex) {
+            Instance observationDiscrete = discretizedDataset.getObservations().get(instanceIndex);
+            Instance observationContinuous = dataset.getObservations().get(instanceIndex);
+            for (Attribute observationAttribute : observationDiscrete.getAttributes())
+                if (observationAttribute.equals(attribute))
+                    resultDataset.addObservation(observationContinuous);
+        }
+
+        resultDataset.setContinuousValuedAttributes(dataset.getContinuousValuedAttributes());
+        resultDataset.setOutcomeAttributeName(dataset.getOutcomeAttributeName());
 
         return resultDataset;
     }
@@ -224,4 +257,5 @@ public class Dataset {
         returnString += "},\n outcomeAttributeName=" + outcomeAttributeName + "}";
         return returnString;
     }
+
 }

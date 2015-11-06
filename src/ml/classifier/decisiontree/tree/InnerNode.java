@@ -77,11 +77,12 @@ public class InnerNode extends Node {
      */
     @Override
     public void showNode(String indent) {
-        System.out.println(indent + "|_ " + this.getLabel() + " " + "inner");
-        indent += "  ";
+        //System.out.println(indent + "|- " + this.getLabel() + " " + "inner");
 
         for (Pair<Attribute, Node> decision : decisions) {
             Node node = decision.getSecond();
+            System.out.println(indent + decision.getFirst().getAttributeName() + "=" + decision.getFirst().getAttributeValue());
+            indent += "  ";
             node.showNode(indent);
         }
     }

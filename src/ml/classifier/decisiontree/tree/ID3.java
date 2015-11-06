@@ -20,8 +20,20 @@ public class ID3 extends Tree {
      * The ID3 Constructor
      * @param dataset the dataset from which the tree is created
      * @param outcomeAttributeName the outcome attribute name
+     * @param purityFunction the purity function used to separate the values
+     *
      */
-    public ID3(Dataset dataset, String outcomeAttributeName) {
+    public ID3(Dataset dataset, String outcomeAttributeName, PurityFunction purityFunction) {
+        setPurityFunction(purityFunction);
+        createTree(dataset, outcomeAttributeName);
+    }
+
+    /**
+     * Create the tree knowing the dataset and the outcome attribute
+     * @param dataset the set of observations
+     * @param outcomeAttributeName the outcome attribute
+     */
+    private void createTree(Dataset dataset, String outcomeAttributeName) {
         Node root = createNode(dataset, outcomeAttributeName);
         this.setRoot(root);
     }

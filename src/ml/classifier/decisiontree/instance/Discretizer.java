@@ -11,7 +11,8 @@ public class Discretizer {
 
     private Dataset dataset;
     private List<String> attributeNames;
-    private List<String> outputClasses;
+
+    private Map<String, Map<Double, String>> mapContinuousToDiscrete;
 
     /**
      * The Discretiser constructor
@@ -21,6 +22,7 @@ public class Discretizer {
     public Discretizer(Dataset dataset, List<String> attributeNames) {
         this.dataset = dataset;
         this.attributeNames = attributeNames;
+        this.mapContinuousToDiscrete = new HashMap<>();
     }
 
     /**
@@ -53,6 +55,14 @@ public class Discretizer {
      */
     public void setDataset(Dataset dataset) {
         this.dataset = dataset;
+    }
+
+    /**
+     * Get the mapping between the continuous values and the discrete ones for every continuous attribute
+     * @return the mapping between the continuous and discrete values for every continuous attribute
+     */
+    public Map<String, Map<Double, String>> getMapContinuousToDiscrete() {
+        return mapContinuousToDiscrete;
     }
 
     /**
@@ -96,6 +106,7 @@ public class Discretizer {
             //Obtain the double values in order to sort them
             List<Double> attributeValues = transformStringsListToDoublesList(attributeValuesAsStrings);
 
+            //BE CAREFUL
             //Map each attributeValue to an outcomeValue
             Map<Double, String> attributeOutcomeMap = mapAttributeValuesToOutcomes(attributeValues, outcomeValues);
 
@@ -111,6 +122,7 @@ public class Discretizer {
 
             //Edit the continuous attribute in the dataset to have values according to the decision surface
             Map<Double, String> attributeClasses = getAttributeClasses(attributeOutcomeMap, bestSplit, outputClasses);
+            mapContinuousToDiscrete.put(attributeName, attributeClasses);
 
             //Go through the dataset and modify the value of the attribute
             for (Instance observation : discretizedDataset.getObservations()) {

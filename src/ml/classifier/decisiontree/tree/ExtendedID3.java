@@ -16,14 +16,25 @@ import java.util.List;
  * It extends the Tree class
  * Created by virgil on 05.11.2015.
  */
-public class ID3Extended extends Tree {
+public class ExtendedID3 extends Tree {
 
     /**
      * The ID3 Constructor
      * @param dataset the dataset from which the tree is created
      * @param outcomeAttributeName the outcome attribute name
+     * @param purityFunction the purity function used to separate the values
      */
-    public ID3Extended(Dataset dataset, String outcomeAttributeName) {
+    public ExtendedID3(Dataset dataset, String outcomeAttributeName, PurityFunction purityFunction) {
+        setPurityFunction(purityFunction);
+        createTree(dataset, outcomeAttributeName);
+    }
+
+    /**
+     * Create the tree knowing the dataset and the outcome attribute
+     * @param dataset the set of observations
+     * @param outcomeAttributeName the outcome attribute
+     */
+    private void createTree(Dataset dataset, String outcomeAttributeName) {
         Node root = createNode(dataset, outcomeAttributeName);
         this.setRoot(root);
     }
@@ -81,7 +92,7 @@ public class ID3Extended extends Tree {
 
                 //We need to split the data to select only those instances that have the attribute
                 //TODO: Split by discretizedDataset, but send the original database to the next node such that it will chose its best split point in the continuous data
-                Dataset splitDataset = Dataset.splitDatasetByAttribute(discretizedDataset, attribute);
+                Dataset splitDataset = Dataset.splitDiscretizedDatasetByAttribute(discretizedDataset, dataset, attribute);
 
                 Node decisionNode = createNode(splitDataset, labelName);
 
@@ -92,6 +103,25 @@ public class ID3Extended extends Tree {
         }
 
         return node;
+    }
+
+    /**
+     * Remap the discretized dataset to the original dataset
+     * This is needed as we want to give to the next node the dataset with continuous value, such that it will be able to
+     * select its best split point
+     * @param originalDataset the original dataset
+     * @param discretizedDataset the discretized dataset
+     * @return the discretizedDataset with continuous values
+     */
+    private Dataset remapDataset(Dataset originalDataset, Dataset discretizedDataset) {
+        Dataset resultDataset = new Dataset(discretizedDataset);
+
+        //TODO: Go through every instance of the discretized dataset and find its original in the first dataset
+        for (int i = 0; i < discretizedDataset.getObservations().size(); ++i) {
+
+        }
+
+        return resultDataset;
     }
 
     /**
