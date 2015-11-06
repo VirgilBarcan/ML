@@ -82,8 +82,7 @@ public class InnerNode extends Node {
         for (Pair<Attribute, Node> decision : decisions) {
             Node node = decision.getSecond();
             System.out.println(indent + decision.getFirst().getAttributeName() + "=" + decision.getFirst().getAttributeValue());
-            indent += "  ";
-            node.showNode(indent);
+            node.showNode(indent + "  ");
         }
     }
 }
