@@ -74,6 +74,7 @@ public class ID3 extends Tree {
             String label = dataset.getMajorityValueForAttribute(labelName);
             node = new TerminalNode(label);
             node.setDataset(dataset);
+            node.setPurityFunctionValue(minimumEntropy);
         }
         else {
             node = new InnerNode();
@@ -92,6 +93,7 @@ public class ID3 extends Tree {
             }
             node.setLabel(attributeName);
             node.setDataset(dataset);
+            node.setPurityFunctionValue(minimumEntropy);
         }
 
         return node;
@@ -113,6 +115,6 @@ public class ID3 extends Tree {
     @Override
     public void showTree() {
         String indent = "";
-        getRoot().showNode(indent);
+        getRoot().showNode(indent, 1);
     }
 }

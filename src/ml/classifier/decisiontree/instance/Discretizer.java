@@ -1,5 +1,7 @@
 package ml.classifier.decisiontree.instance;
 
+import ml.utils.Pair;
+
 import java.util.*;
 
 /**
@@ -12,7 +14,9 @@ public class Discretizer {
     private Dataset dataset;
     private List<String> attributeNames;
 
-    private Map<String, Map<Double, String>> mapContinuousToDiscrete;
+    private List<Double> bestSplit;
+
+    private Map<String, List<Pair<Double, String>>> mapContinuousToDiscrete;
 
     /**
      * The Discretiser constructor
@@ -61,8 +65,16 @@ public class Discretizer {
      * Get the mapping between the continuous values and the discrete ones for every continuous attribute
      * @return the mapping between the continuous and discrete values for every continuous attribute
      */
-    public Map<String, Map<Double, String>> getMapContinuousToDiscrete() {
+    public Map<String, List<Pair<Double, String>>> getMapContinuousToDiscrete() {
         return mapContinuousToDiscrete;
+    }
+
+    /**
+     * Get the best split points
+     * @return the list of points in the best split
+     */
+    public List<Double> getBestSplit() {
+        return bestSplit;
     }
 
     /**
@@ -108,31 +120,36 @@ public class Discretizer {
 
             //BE CAREFUL
             //Map each attributeValue to an outcomeValue
-            Map<Double, String> attributeOutcomeMap = mapAttributeValuesToOutcomes(attributeValues, outcomeValues);
+            List<Pair<Double, String>> attributeOutcomeMap = mapAttributeValuesToOutcomes(attributeValues, outcomeValues);
 
             //Sort the values (in increasing order, "place them on the real numbers axis")
             Collections.sort(attributeValues);
+
+            //Sort
+            attributeOutcomeMap.sort(new Comparator<Pair<Double, String>>() {
+                @Override
+                public int compare(Pair<Double, String> o1, Pair<Double, String> o2) {
+                    return o1.getFirst().compareTo(o2.getFirst());
+                }
+            });
 
             //Find the split points
             List<Double> splitPoints = getSplitPoints(attributeValues, attributeOutcomeMap);
 
             //Get the best split for the current attribute values
-            List<Double> bestSplit = new ArrayList<>();
+            bestSplit = new ArrayList<>();
             bestSplit = testAllSplits(noOfOutputClasses, attributeValues, attributeOutcomeMap, splitPoints, outputClasses);
 
             //Edit the continuous attribute in the dataset to have values according to the decision surface
-            Map<Double, String> attributeClasses = getAttributeClasses(attributeOutcomeMap, bestSplit, outputClasses);
+            List<Pair<Double, String>> attributeClasses = getAttributeClasses(attributeOutcomeMap, bestSplit, outputClasses);
             mapContinuousToDiscrete.put(attributeName, attributeClasses);
 
             //Go through the dataset and modify the value of the attribute
-            for (Instance observation : discretizedDataset.getObservations()) {
+            for (int instanceIndex = 0; instanceIndex < discretizedDataset.getObservations().size(); ++instanceIndex) {
+                Instance observation = discretizedDataset.getObservations().get(instanceIndex);
                 for (Attribute attribute : observation.getAttributes()) {
                     if (attribute.getAttributeName().equals(attributeName)) {
-                        Double value = Double.parseDouble(attribute.getAttributeValue());
-                        if (attributeClasses.containsKey(value)) {
-                            attribute.setAttributeValue(attributeClasses.get(value));
-                            break;
-                        }
+                        attribute.setAttributeValue(attributeClasses.get(instanceIndex).getSecond());
                     }
                 }
             }
@@ -150,7 +167,7 @@ public class Discretizer {
      * @param outputClasses the list of possible output classes (the possible values taken by the attribute after the split)
      * @return the best possible split
      */
-    private List<Double> testAllSplits(int noOfOutputClasses, List<Double> attributeValues, Map<Double, String> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
+    private List<Double> testAllSplits(int noOfOutputClasses, List<Double> attributeValues, List<Pair<Double, String>> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
         List<Double> bestSplit = new ArrayList<>();
 
         int minMisclassifiedValues = Integer.MAX_VALUE;
@@ -182,16 +199,17 @@ public class Discretizer {
      * @param attributeOutcomeMap the map of attribute values - outcomes
      * @return the list of split points
      */
-    private List<Double> getSplitPoints(List<Double> attributeValues, Map<Double, String> attributeOutcomeMap) {
+    private List<Double> getSplitPoints(List<Double> attributeValues, List<Pair<Double, String>> attributeOutcomeMap) {
         List<Double> splitPoints = new ArrayList<>();
 
         //compare each value i with its predecessor, i in {1, ..., n-1}, where n = attributeValues.size()
-        for (int i = 1; i < attributeValues.size(); ++i) {
-            Double currentValue = attributeValues.get(i);
-            Double lastValue = attributeValues.get(i - 1);
-            if (!attributeOutcomeMap.get(currentValue).equals(attributeOutcomeMap.get(lastValue))) {
+        for (int i = 1; i < attributeOutcomeMap.size(); ++i) {
+            Pair<Double, String> currentPair = attributeOutcomeMap.get(i);
+            Pair<Double, String> lastPair = attributeOutcomeMap.get(i - 1);
+
+            if (!currentPair.getSecond().equals(lastPair.getSecond())) {
                 //new split point: add the average of the values as the split point (because we want to simulate that the value isn't suddenly changing)
-                splitPoints.add((attributeValues.get(i) + attributeValues.get(i - 1)) / 2);
+                splitPoints.add((currentPair.getFirst() + lastPair.getFirst()) / 2);
             }
         }
 
@@ -206,14 +224,13 @@ public class Discretizer {
      * @param outputClasses the possible output classes, ordered
      * @return the number of misclassified values after the split
      */
-    private int countMisclassifiedValues(List<Double> attributeValues, Map<Double, String> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
+    private int countMisclassifiedValues(List<Double> attributeValues, List<Pair<Double, String>> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
         int misclassifiedValues = 0;
 
-        Map<Double, String> attributeClasses = getAttributeClasses(attributeOutcomeMap, splitPoints, outputClasses);
+        List<Pair<Double, String>> attributeClasses = getAttributeClasses(attributeOutcomeMap, splitPoints, outputClasses);
 
-        for (int i = 0; i < attributeValues.size(); ++i) {
-            Double currentValue = attributeValues.get(i);
-            if (!attributeOutcomeMap.get(currentValue).equals(attributeClasses.get(currentValue))) {
+        for (int i = 0; i < attributeOutcomeMap.size(); ++i) {
+            if (!attributeOutcomeMap.get(i).getSecond().equals(attributeClasses.get(i).getSecond())) {
                 ++misclassifiedValues;
             }
         }
@@ -229,8 +246,8 @@ public class Discretizer {
      * @param outputClasses the possible output classes
      * @return the decision surface
      */
-    private Map<Double, String> getAttributeClasses(Map<Double, String> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
-        Map<Double, String> decisionSurface = new TreeMap<>();
+    private List<Pair<Double, String>> getAttributeClasses(List<Pair<Double, String>> attributeOutcomeMap, List<Double> splitPoints, List<String> outputClasses) {
+        List<Pair<Double, String>> decisionSurface = new ArrayList<>();
 
         int splitPointIndex = 0;
         int splitPointsCount = splitPoints.size();
@@ -239,18 +256,19 @@ public class Discretizer {
         //Get first decision
         currentDecision = outputClasses.get(0);
 
-        for (Double key : attributeOutcomeMap.keySet()) {
+        for (int i = 0; i < attributeOutcomeMap.size(); ++i) {
+            Double key = attributeOutcomeMap.get(i).getFirst();
             if (splitPointIndex < splitPointsCount) {
                 if (key < splitPoints.get(splitPointIndex)) {
-                    decisionSurface.put(key, currentDecision);
+                    decisionSurface.add(new Pair(key, currentDecision));
                 } else {
                     ++splitPointIndex;
                     currentDecision = outputClasses.get(splitPointIndex);
-                    decisionSurface.put(key, currentDecision);
+                    decisionSurface.add(new Pair(key, currentDecision));
                 }
             }
             else {
-                decisionSurface.put(key, currentDecision);
+                decisionSurface.add(new Pair(key, currentDecision));
             }
         }
 
@@ -283,12 +301,12 @@ public class Discretizer {
      * @param outcomeValues the outcomeValues
      * @return the map of attributeValues to outcomeValues
      */
-    private Map<Double, String> mapAttributeValuesToOutcomes(List<Double> attributeValues, List<String> outcomeValues) {
-        Map<Double, String> attributeOutcomeMap = new TreeMap<>();
+    private List<Pair<Double, String>> mapAttributeValuesToOutcomes(List<Double> attributeValues, List<String> outcomeValues) {
+        List<Pair<Double, String>> attributeOutcomeMap = new ArrayList<>();
 
         //attributeValues has the same size as outcomeValues
         for (int i = 0; i < attributeValues.size(); ++i) {
-            attributeOutcomeMap.put(attributeValues.get(i), outcomeValues.get(i));
+            attributeOutcomeMap.add(new Pair(attributeValues.get(i), outcomeValues.get(i)));
         }
 
         return attributeOutcomeMap;

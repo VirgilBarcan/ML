@@ -12,6 +12,8 @@ public abstract class Node {
     private Dataset dataset;
     private ConfusionMatrix confusionMatrix;
 
+    private Double purityFunctionValue;
+
     /**
      * Get the label of this Node
      * @return the label of this Node
@@ -60,11 +62,20 @@ public abstract class Node {
         this.confusionMatrix = confusionMatrix;
     }
 
+    public Double getPurityFunctionValue() {
+        return purityFunctionValue;
+    }
+
+    public void setPurityFunctionValue(Double purityFunctionValue) {
+        this.purityFunctionValue = purityFunctionValue;
+    }
+
     /**
      * Check if the Node is terminal
      * @return true if the Node is terminal, false otherwise
      */
     public boolean isTerminal() {
+        //System.out.println("Node.isTerminal: " + this);
         if (this instanceof TerminalNode)
             return true;
         return false;
@@ -73,7 +84,8 @@ public abstract class Node {
     /**
      * Show the current node with an indent
      * @param indent the indent
+     * @param nodeLevel the node level
      */
-    abstract public void showNode(String indent);
+    abstract public void showNode(String indent, int nodeLevel);
 
 }

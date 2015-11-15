@@ -4,7 +4,6 @@ import ml.classifier.decisiontree.instance.Attribute;
 import ml.classifier.decisiontree.instance.Dataset;
 import ml.classifier.decisiontree.instance.Discretizer;
 import ml.classifier.decisiontree.instance.Instance;
-import ml.classifier.decisiontree.purityfunction.Entropy;
 import ml.classifier.decisiontree.purityfunction.PurityFunction;
 import ml.utils.Pair;
 
@@ -18,6 +17,8 @@ import java.util.List;
  */
 public class ExtendedID3 extends Tree {
 
+    private List<String> outputClasses;
+
     /**
      * The ID3 Constructor
      * @param dataset the dataset from which the tree is created
@@ -26,6 +27,18 @@ public class ExtendedID3 extends Tree {
      */
     public ExtendedID3(Dataset dataset, String outcomeAttributeName, PurityFunction purityFunction) {
         setPurityFunction(purityFunction);
+        createTree(dataset, outcomeAttributeName);
+    }
+
+    /**
+     * The ID3 Constructor
+     * @param dataset the dataset from which the tree is created
+     * @param outcomeAttributeName the outcome attribute name
+     * @param purityFunction the purity function used to separate the values
+     */
+    public ExtendedID3(Dataset dataset, String outcomeAttributeName, PurityFunction purityFunction, List<String> outputClasses) {
+        setPurityFunction(purityFunction);
+        this.outputClasses = outputClasses;
         createTree(dataset, outcomeAttributeName);
     }
 
@@ -57,8 +70,8 @@ public class ExtendedID3 extends Tree {
 
         //Discretize the dataset
         Discretizer discretizer = new Discretizer(dataset, dataset.getContinuousValuedAttributes());
-        //TODO: Find another way such that not only binary classification is doable
-        Dataset discretizedDataset = discretizer.discretize(2);
+        //TODO: Find another way such that not only binary classification is possible
+        Dataset discretizedDataset = discretizer.discretize(this.outputClasses);
 
         Instance instance = discretizedDataset.getObservations().get(0); //this is just to gain access to the list of attributes
         for (Attribute attribute : instance.getAttributes()) {
@@ -81,47 +94,42 @@ public class ExtendedID3 extends Tree {
             String label = discretizedDataset.getMajorityValueForAttribute(labelName);
             node = new TerminalNode(label);
             node.setDataset(dataset);
+            node.setPurityFunctionValue(minimumEntropy);
         }
         else {
-            node = new InnerNode();
-            //Get all the possible values for the attribute and create decisions (new Nodes)
-            List<String> allAttributeValues = discretizedDataset.getAllDistinctValuesForAttribute(attributeName);
+            //Hard Pre-pruning done in order to have a small tree
+            if (minimumEntropy < .10) {
 
-            for (String attributeValue : allAttributeValues) {
-                Attribute attribute = new Attribute(attributeName, attributeValue);
+                node = new InnerNode();
+                //Get all the possible values for the attribute and create decisions (new Nodes)
+                List<String> allAttributeValues = discretizedDataset.getAllDistinctValuesForAttribute(attributeName);
 
-                //We need to split the data to select only those instances that have the attribute
-                //TODO: Split by discretizedDataset, but send the original database to the next node such that it will chose its best split point in the continuous data
-                Dataset splitDataset = Dataset.splitDiscretizedDatasetByAttribute(discretizedDataset, dataset, attribute);
+                for (String attributeValue : allAttributeValues) {
+                    Attribute attribute = new Attribute(attributeName, attributeValue);
 
-                Node decisionNode = createNode(splitDataset, labelName);
+                    //We need to split the data to select only those instances that have the attribute
+                    //Split by discretizedDataset, but send the original database to the next node such that it will chose its best split point in the continuous data
+                    Dataset splitDataset = Dataset.splitDiscretizedDatasetByAttribute(discretizedDataset, dataset, attribute);
 
-                ((InnerNode)node).addDecision(new Pair<Attribute, Node>(attribute, decisionNode));
+                    Node decisionNode = createNode(splitDataset, labelName);
+
+                    ((InnerNode) node).addDecision(new Pair<Attribute, Node>(attribute, decisionNode));
+                }
+                node.setLabel(attributeName);
+                node.setDataset(dataset);
+                node.setPurityFunctionValue(minimumEntropy);
             }
-            node.setLabel(attributeName);
-            node.setDataset(dataset);
+            else {
+                //Get the value that has the biggest count for the attribute
+                //TODO: Get also the value of the split threshold in order to update the label to something like: Attribute < threshold (Edits needed in Discretizer)
+                String label = discretizedDataset.getMajorityValueForAttribute(labelName);
+                node = new TerminalNode(label);
+                node.setDataset(dataset);
+                node.setPurityFunctionValue(minimumEntropy);
+            }
         }
 
         return node;
-    }
-
-    /**
-     * Remap the discretized dataset to the original dataset
-     * This is needed as we want to give to the next node the dataset with continuous value, such that it will be able to
-     * select its best split point
-     * @param originalDataset the original dataset
-     * @param discretizedDataset the discretized dataset
-     * @return the discretizedDataset with continuous values
-     */
-    private Dataset remapDataset(Dataset originalDataset, Dataset discretizedDataset) {
-        Dataset resultDataset = new Dataset(discretizedDataset);
-
-        //TODO: Go through every instance of the discretized dataset and find its original in the first dataset
-        for (int i = 0; i < discretizedDataset.getObservations().size(); ++i) {
-
-        }
-
-        return resultDataset;
     }
 
     /**
@@ -131,7 +139,22 @@ public class ExtendedID3 extends Tree {
      */
     @Override
     public String evaluate(Instance observation) {
-        return null;
+        System.out.println("ExtendedID3.evaluate");
+        Node node = getRoot();
+        while( node.isTerminal() == false ) {
+            //System.out.println("ExtendedID3.evaluate: node = " + node);
+            for( Pair<Attribute, Node> pair: ((InnerNode)node).getDecisions()) {
+                //System.out.println("ExtendedID3.evaluate: pair = " + pair);
+                Attribute attribute = pair.getFirst();
+                Attribute observationAttribute = observation.getAttributeByName( attribute.getAttributeName() );
+                //TODO: This doesn't work in the continuous variable case
+                if( attribute.equals( observationAttribute ) ) {
+                    node = pair.getSecond();
+                    break;
+                }
+            }
+        }
+        return node.getLabel();
     }
 
     /**
@@ -140,6 +163,6 @@ public class ExtendedID3 extends Tree {
     @Override
     public void showTree() {
         String indent = "";
-        getRoot().showNode(indent);
+        getRoot().showNode(indent, 1);
     }
 }

@@ -74,15 +74,29 @@ public class InnerNode extends Node {
     /**
      * Show the current node with an indent
      * @param indent the indent
+     * @param nodeLevel the node level
      */
     @Override
-    public void showNode(String indent) {
+    public void showNode(String indent, int nodeLevel) {
         //System.out.println(indent + "|- " + this.getLabel() + " " + "inner");
 
         for (Pair<Attribute, Node> decision : decisions) {
             Node node = decision.getSecond();
-            System.out.println(indent + decision.getFirst().getAttributeName() + "=" + decision.getFirst().getAttributeValue());
-            node.showNode(indent + "  ");
+            System.out.println(indent + nodeLevel + ") " + decision.getFirst().getAttributeName() + "=" + decision.getFirst().getAttributeValue() + "  entropy = " + decision.getSecond().getPurityFunctionValue());
+            node.showNode(indent + "  ", nodeLevel + 1);
         }
+    }
+
+    @Override
+    public String toString() {
+        String returnValue = "InnerNode:\nDecisions:\n";
+
+        for (Pair<Attribute, Node> decision : decisions) {
+            returnValue += decision.getFirst().getAttributeName() +
+                    "=" + decision.getFirst().getAttributeValue() +
+                    "  entropy = " + decision.getSecond().getPurityFunctionValue() + " ";
+        }
+
+        return returnValue;
     }
 }
