@@ -106,7 +106,19 @@ public class ID3 extends Tree {
      */
     @Override
     public String evaluate(Instance observation) {
-        return null;
+        Node node = getRoot();
+        while( node.isTerminal() == false ) {
+            for( Pair<Attribute, Node> pair: ((InnerNode)node).getDecisions() ) {
+                Attribute attribute = pair.getFirst();
+                Attribute observationAttribute = observation.getAttributeByName( attribute.getAttributeName() );
+                if( attribute.equals( observationAttribute ) ) {
+                    node = pair.getSecond();
+                    break;
+                }
+            }
+        }
+
+        return node.getLabel();
     }
 
     /**

@@ -6,8 +6,6 @@ import ml.classifier.decisiontree.instance.Discretizer;
 import ml.classifier.decisiontree.instance.Instance;
 import ml.classifier.decisiontree.purityfunction.PurityFunction;
 import ml.utils.Pair;
-
-import javax.xml.crypto.Data;
 import java.util.List;
 
 /**
@@ -72,6 +70,7 @@ public class ExtendedID3 extends Tree {
         Discretizer discretizer = new Discretizer(dataset, dataset.getContinuousValuedAttributes());
         //TODO: Find another way such that not only binary classification is possible
         Dataset discretizedDataset = discretizer.discretize(this.outputClasses);
+        List<Double> splitPoints = discretizer.getBestSplit();
 
         Instance instance = discretizedDataset.getObservations().get(0); //this is just to gain access to the list of attributes
         for (Attribute attribute : instance.getAttributes()) {
@@ -82,6 +81,8 @@ public class ExtendedID3 extends Tree {
                 continue;
             Double currentEntropy = getPurityFunction().calculate(confusionMatrix);
             foundAttribute = true;
+
+            //TODO: Edit to use any purity function, not only Entropy
             if (currentEntropy < minimumEntropy) {
                 minimumEntropy = currentEntropy;
                 attributeName = attribute.getAttributeName();
@@ -98,7 +99,7 @@ public class ExtendedID3 extends Tree {
         }
         else {
             //Hard Pre-pruning done in order to have a small tree
-            if (minimumEntropy < .10) {
+            if (minimumEntropy < .5) {
 
                 node = new InnerNode();
                 //Get all the possible values for the attribute and create decisions (new Nodes)
@@ -110,6 +111,14 @@ public class ExtendedID3 extends Tree {
                     //We need to split the data to select only those instances that have the attribute
                     //Split by discretizedDataset, but send the original database to the next node such that it will chose its best split point in the continuous data
                     Dataset splitDataset = Dataset.splitDiscretizedDatasetByAttribute(discretizedDataset, dataset, attribute);
+
+                    if (splitDataset.getContinuousValuedAttributes().contains(attribute.getAttributeName())) {
+                        attribute.setAttributeValue(splitPoints.get(0).toString());
+                        attribute.setIsContinuous(true);
+                    }
+                    else {
+                        attribute.setIsContinuous(false);
+                    }
 
                     Node decisionNode = createNode(splitDataset, labelName);
 
@@ -143,14 +152,48 @@ public class ExtendedID3 extends Tree {
         Node node = getRoot();
         while( node.isTerminal() == false ) {
             //System.out.println("ExtendedID3.evaluate: node = " + node);
-            for( Pair<Attribute, Node> pair: ((InnerNode)node).getDecisions()) {
+
+            List<Pair<Attribute, Node>> decisions = ((InnerNode)node).getDecisions();
+            for( int decisionIndex = 0; decisionIndex < decisions.size(); ++decisionIndex) {
+                Pair<Attribute, Node> pair = decisions.get(decisionIndex);
+
                 //System.out.println("ExtendedID3.evaluate: pair = " + pair);
+
                 Attribute attribute = pair.getFirst();
                 Attribute observationAttribute = observation.getAttributeByName( attribute.getAttributeName() );
-                //TODO: This doesn't work in the continuous variable case
-                if( attribute.equals( observationAttribute ) ) {
-                    node = pair.getSecond();
-                    break;
+
+                if (attribute.isContinuous()) {
+                    //TODO: This doesn't work in the continuous variable case
+                    if (decisionIndex == 0) {
+                        //go to the left in the tree?
+                        if (attribute.greaterThan(observationAttribute)) {
+                            node = pair.getSecond();
+                            break;
+                        }
+                        else {
+                            //TODO: Being a binary classification, we know the next decision is the right one, but what if we had multiple decisions??
+                            node = decisions.get(decisionIndex + 1).getSecond();
+                            break;
+                        }
+                    }
+                    else {
+                        //go to the right in the tree
+                        if (attribute.lessThan(observationAttribute)) {
+                            node = pair.getSecond();
+                            break;
+                        }
+                        else {
+                            //TODO: Being a binary classification, we know the next decision is the right one, but what if we had multiple decisions??
+                            node = decisions.get(decisionIndex - 1).getSecond();
+                            break;
+                        }
+                    }
+                }
+                else {
+                    if (attribute.equals(observationAttribute)) {
+                        node = pair.getSecond();
+                        break;
+                    }
                 }
             }
         }

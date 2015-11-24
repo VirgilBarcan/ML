@@ -4,6 +4,7 @@ import ml.classifier.decisiontree.instance.Dataset;
 import ml.classifier.decisiontree.instance.Instance;
 import ml.classifier.decisiontree.purityfunction.Entropy;
 import ml.classifier.decisiontree.tree.ExtendedID3;
+import ml.classifier.decisiontree.tree.ID3;
 import ml.classifier.decisiontree.tree.Tree;
 import ml.utils.DataLoader;
 
@@ -17,6 +18,31 @@ public class Test {
 
     public static void main(String[] args) {
 
+        /*
+        DataLoader dataLoader = new DataLoader();
+
+        Dataset trainDataset = dataLoader.loadDatasetFromCsv("covtype-train_discrete.csv", ",", "Cover_Type");
+        Tree tree = new ID3(trainDataset, "Cover_Type", new Entropy());
+        tree.showTree();
+
+        Dataset testDataset = dataLoader.loadDatasetFromCsv("covtype-test_discrete.csv", ",", "Cover_Type");
+
+        Double hit = .0, count = .0;
+        for( Instance observation: testDataset.getObservations() ) {
+            String actualLabel = observation.getAttributeByName( "Cover_Type" ).getAttributeValue();
+            String predictedLabel = tree.evaluate(observation);
+
+            //System.out.println(actualLabel + " " + predictedLabel);
+
+            count = count + 1.0;
+            if( actualLabel.equals( predictedLabel ) )
+                hit = hit + 1.0;
+        }
+        System.out.println("\nThe probability of getting the right label is: " + (hit / count));
+
+        */
+
+        //*
         DataLoader dataLoader = new DataLoader();
         Dataset trainDataset = dataLoader.loadDatasetFromCsv("covtype-train4.csv", ",", "Cover_Type");
 
@@ -41,7 +67,7 @@ public class Test {
         ExtendedID3 extendedID3 = new ExtendedID3(trainDataset, "Cover_Type", new Entropy(), outputClasses);
         extendedID3.showTree();
 
-        /*
+        //*
         Dataset testDataset = dataLoader.loadDatasetFromCsv("covtype-test.csv", ",");
         System.out.println("Evaluating...");
 
@@ -56,14 +82,10 @@ public class Test {
             if( actualLabel.equals( predictedLabel ) )
                 hit = hit + 1.0;
             System.out.println("Count = " + count + "\nhit = " + hit);
-            if (checked == 100) {
-                System.out.println("Count = " + count + "\nhit = " + hit);
-                checked = 0;
-            }
 
         }
         System.out.println(hit / count);
-        */
+        //*/
     }
 
 }

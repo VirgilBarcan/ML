@@ -11,12 +11,16 @@ public class Attribute {
     private String attributeName;
     private String attributeValue;
 
+    private boolean isContinuous;
+
     /**
      * The Attribute default constructor
      */
     public Attribute() {
         this.attributeName = "";
         this.attributeValue = "";
+
+        this.isContinuous = false;
     }
 
     /**
@@ -27,6 +31,8 @@ public class Attribute {
     public Attribute(String attributeName, String attributeValue) {
         this.attributeName = attributeName;
         this.attributeValue = attributeValue;
+
+        this.isContinuous = false;
     }
 
     /**
@@ -62,6 +68,22 @@ public class Attribute {
     }
 
     /**
+     * Check if the attribute has a continuous value
+     * @return true if the attribute has a continuous value, false otherwise
+     */
+    public boolean isContinuous() {
+        return isContinuous;
+    }
+
+    /**
+     * Set the continuous state of the attribute
+     * @param isContinuous the value of isContinuous: true if the attribute is continuous, false otherwise
+     */
+    public void setIsContinuous(boolean isContinuous) {
+        this.isContinuous = isContinuous;
+    }
+
+    /**
      * Check if an Attribute is equal with this one
      * @param other the other attribute
      * @return true if the attributes are equal, false otherwise
@@ -70,6 +92,32 @@ public class Attribute {
         if (attributeName.equals(other.getAttributeName()) == false)
             return false;
         if (attributeValue.compareTo(other.getAttributeValue()) != 0)
+            return false;
+        return true;
+    }
+
+    /**
+     * Check if an Attribute's value is smaller than another one's value
+     * @param other the other attribute
+     * @return true if the attribute's value is smaller, false otherwise
+     */
+    public boolean lessThan(Attribute other) {
+        if (attributeName.equals(other.getAttributeName()) == false)
+            return false;
+        if ((Double.parseDouble(attributeValue)) >= Double.parseDouble(other.attributeValue))
+            return false;
+        return true;
+    }
+
+    /**
+     * Check if an Attribute's value is greater than another one's value
+     * @param other the other attribute
+     * @return true if the attribute's value is greater, false otherwise
+     */
+    public boolean greaterThan(Attribute other) {
+        if (attributeName.equals(other.getAttributeName()) == false)
+            return false;
+        if ((Double.parseDouble(attributeValue)) < Double.parseDouble(other.attributeValue))
             return false;
         return true;
     }
